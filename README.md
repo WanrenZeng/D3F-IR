@@ -1,4 +1,4 @@
-# D3F-IR
+# (ECCV2026) D3F-IR: Dual-Domain Deterministic Flow Matching for Visible-to-Infrared Translation
 
 Official implementation of D3F-IR: Dual-Domain Deterministic Flow Matching for Visible-to-Infrared Translation. 
 
