@@ -6,8 +6,8 @@ Official implementation of D3F-IR: Dual-Domain Deterministic Flow Matching for V
 
 ## To-Do
 
-- [x] 开源训练和推理代码
-- [ ] 上传训练好的 ckpt
+- [x] Release training and inference code
+- [ ] Upload trained checkpoints
 
 ## Project layout
 
