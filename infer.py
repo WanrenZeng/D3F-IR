@@ -32,7 +32,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--input", type=Path, required=True, help="An RGB image or a directory of images")
     parser.add_argument("--output_dir", type=Path, default=None)
     parser.add_argument("--weights", type=Path, default=None, help="Override the dataset default checkpoint")
-    parser.add_argument("--dino_ckpt", type=Path, default=PROJECT_ROOT / "ckpt/DINOv3/model.safetensors")
+    parser.add_argument("--dino_ckpt", type=Path, default=None,
+                        help="Optional: only needed to build the encoder from the original DINOv3 weights. "
+                             "Inference uses the fine-tuned backbone inside ckpt.pt, so this can be omitted.")
     parser.add_argument("--steps", type=int, default=10)
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     parser.add_argument("--precision", choices=("fp32", "fp16", "bf16"), default="fp32")
@@ -62,7 +64,7 @@ def build_model(dataset: str, dino_checkpoint: Path, device: torch.device) -> D3
         shallow_channels=80,
         align_dim=384,
     )
-    return D3FIRModel(config, str(dino_checkpoint)).to(device)
+    return D3FIRModel(config, str(dino_checkpoint) if dino_checkpoint else "", load_pretrained=False).to(device)
 
 
 @torch.inference_mode()
@@ -79,7 +81,7 @@ def infer_image(
     with Image.open(image_path) as source:
         image = source.convert("RGB").resize((width, height), Image.Resampling.BICUBIC)
     visible = ToTensor()(image).unsqueeze(0).to(device)
-    visible_tokens, source_latent = model.encode_rgb(visible)
+    rgb_tokens, source_latent = model.encode_rgb(visible)
     if source_latent is None:
         raise RuntimeError("The selected model did not produce visible-light source latents.")
 
@@ -94,14 +96,13 @@ def infer_image(
         )
         with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=amp_enabled):
             velocity = model.dit(
-                latent, t=time, cond=visible_tokens, rgb_tokens=visible_tokens
+                latent, t=time, cond=rgb_tokens, rgb_tokens=rgb_tokens
             )
             pixel_velocity, _ = model.decode(
-                visible_tokens,
-                velocity,
                 rgb=visible,
-                context_tokens=visible_tokens,
                 rgb_latent=source_latent,
+                velocity=velocity,
+                rgb_tokens=rgb_tokens,
             )
         latent = latent + velocity * dt
         output = output + pixel_velocity * dt
@@ -123,8 +124,6 @@ def main() -> None:
     checkpoint_path = args.weights or PROJECT_ROOT / "ckpt" / DATASET_CONFIGS[args.dataset]["checkpoint"]
     if not checkpoint_path.is_file():
         raise FileNotFoundError(f"Checkpoint does not exist: {checkpoint_path}")
-    if not args.dino_ckpt.is_file():
-        raise FileNotFoundError(f"DINO checkpoint does not exist: {args.dino_ckpt}")
 
     output_dir = args.output_dir or PROJECT_ROOT / "outputs" / "inference" / args.dataset
     if args.input.is_file():

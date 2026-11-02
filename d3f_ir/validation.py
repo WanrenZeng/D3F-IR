@@ -41,13 +41,12 @@ def validate(model: FlowMatchingModel, loader, device: torch.device, args: argpa
 
                 b_size = visible.shape[0]
 
-                rgb_tokens_full, rgb_tokens_latent = model.encode_rgb(visible)
+                rgb_tokens, rgb_tokens_latent = model.encode_rgb(visible)
                 infrared_tokens_full, infrared_tokens_latent = model.encode_infrared(infrared)
-                context_tokens_full = rgb_tokens_full
                 if rgb_tokens_latent is None:
                     raise RuntimeError("The visible-light latent adapter is required for flow matching.")
                 pred_latent, pred_image = sample_joint(
-                    model, rgb_tokens_latent, context_tokens_full, rgb_tokens_full, visible,
+                    model, rgb_tokens_latent, rgb_tokens, visible,
                     args.val_flow_steps,
                 )
 
@@ -72,7 +71,7 @@ def validate(model: FlowMatchingModel, loader, device: torch.device, args: argpa
 
 
                     student_features = {
-                        "visible": rgb_tokens_full[:1].detach().cpu().float(),
+                        "visible": rgb_tokens[:1].detach().cpu().float(),
                         "pred": pred_latent[:1].detach().cpu().float(),
                         "infrared": infrared_tokens_full[:1].detach().cpu().float(),
                     }

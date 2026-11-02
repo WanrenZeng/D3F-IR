@@ -3,7 +3,37 @@ from typing import Optional, Tuple, Union
 
 import torch
 import torch.nn as nn
-from transformers import AutoModel
+from transformers.models.dinov3_vit.configuration_dinov3_vit import DINOv3ViTConfig
+from transformers.models.dinov3_vit.modeling_dinov3_vit import DINOv3ViTModel
+
+# DINOv3 ViT-S/16 architecture used by D3F-IR. Inference can build the encoder
+# from these values alone (weights are then taken from the released ckpt.pt), so
+# the gated original DINOv3 files are only required when load_pretrained=True.
+DEFAULT_DINOV3_CONFIG = {
+    "hidden_size": 384,
+    "intermediate_size": 1536,
+    "num_hidden_layers": 12,
+    "num_attention_heads": 6,
+    "hidden_act": "gelu",
+    "patch_size": 16,
+    "num_register_tokens": 4,
+    "rope_theta": 100.0,
+    "key_bias": False,
+    "query_bias": True,
+    "value_bias": True,
+    "proj_bias": True,
+    "mlp_bias": True,
+    "use_gated_mlp": False,
+    "pos_embed_rescale": 2.0,
+    "layerscale_value": 1.0,
+    "attention_dropout": 0.0,
+    "drop_path_rate": 0.0,
+    "initializer_range": 0.02,
+    "layer_norm_eps": 1e-05,
+    "image_size": 224,
+    "num_channels": 3,
+}
+
 
 class DinoEncoder(nn.Module):
     """DINO encoder that always applies the draw adapter when configured."""
@@ -16,6 +46,7 @@ class DinoEncoder(nn.Module):
         dino_model: str = "vit_small_patch16_224.dino",
         trainable: bool = False,
         latent_reduce_dim: Optional[int] = None,
+        load_pretrained: bool = True,
     ) -> None:
         super().__init__()
 
@@ -31,16 +62,27 @@ class DinoEncoder(nn.Module):
 
         self.num_patches = (H // patch_size) * (W // patch_size)
 
-        checkpoint_path = Path(ckpt_path).expanduser()
-        if not checkpoint_path.exists():
-            raise FileNotFoundError(
-                f"DINO checkpoint does not exist: {checkpoint_path}"
+        checkpoint_path = Path(ckpt_path).expanduser() if ckpt_path else None
+        model_path = None
+        if checkpoint_path is not None and checkpoint_path.exists():
+            model_path = checkpoint_path if checkpoint_path.is_dir() else checkpoint_path.parent
+
+        if load_pretrained:
+            # Training: initialise the encoder from the original DINOv3 weights.
+            if model_path is None:
+                raise FileNotFoundError(
+                    f"DINO checkpoint does not exist: {ckpt_path}"
+                )
+            self.backbone = DINOv3ViTModel.from_pretrained(
+                str(model_path), local_files_only=True, output_hidden_states=True
             )
-        model_path = checkpoint_path if checkpoint_path.is_dir() else checkpoint_path.parent
-        self.backbone = AutoModel.from_pretrained(
-            str(model_path), local_files_only=True, output_hidden_states=True
-        )
-        print(f"DINO weights loaded from {ckpt_path}")
+            print(f"DINO weights loaded from {ckpt_path}")
+        else:
+            # Inference: build the architecture from the embedded config; all
+            # weights are subsequently loaded from the model checkpoint (ckpt.pt).
+            dino_config = DINOv3ViTConfig(**DEFAULT_DINOV3_CONFIG, output_hidden_states=True)
+            self.backbone = DINOv3ViTModel(dino_config)
+            print("DINO backbone built from embedded config; weights loaded from model checkpoint")
 
         self.trainable_backbone = trainable
         self.backbone.requires_grad_(trainable)

@@ -425,10 +425,9 @@ class PixelPredictor(nn.Module):
 
     def forward(
         self,
-        rgb_tokens_full: torch.Tensor,
+        rgb_tokens: torch.Tensor,
         draw_tokens: torch.Tensor,
         rgb: Optional[torch.Tensor] = None,
-        context_tokens: Optional[torch.Tensor] = None,
         rgb_latent: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         self._reset_intermediates()
@@ -436,7 +435,7 @@ class PixelPredictor(nn.Module):
         if rgb_latent is not None and self.latent_fusion is not None:
             draw_tokens = self.latent_fusion(draw_tokens, rgb_latent)
         draw_tokens_up = self.draw_up(draw_tokens)
-        fused = self.fusion(draw_tokens_up, rgb_tokens_full)
+        fused = self.fusion(draw_tokens_up, rgb_tokens)
         x = self.decoder_embed(fused)
         x = self.act(x)
 

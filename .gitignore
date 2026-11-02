@@ -1,3 +1,14 @@
 ckpt/
 evaluation_results/
 evaluation_smoke/
+ev.py
+evaluate_fm.py
+.gitignore
+
+# temporary / generated artifacts
+__pycache__/
+*.pyc
+outputs/
+eval_repo_results/
+fid_*
+.qoder/

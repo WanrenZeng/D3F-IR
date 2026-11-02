@@ -1,8 +1,6 @@
 # D3F-IR
 
-Standalone training project for visible-light-to-infrared image translation. The training
-implementation, model, dataset reader, and FID evaluator are all inside this
-directory; it does not import Python modules from the parent repository.
+Official implementation of D3F-IR: Dual-Domain Deterministic Flow Matching for Visible-to-Infrared Translation. 
 
 ## Project layout
 
@@ -14,12 +12,12 @@ D3F-IR/
 ├── data/                       # split manifests and dataset assets
 ├── ckpt/
 │   ├── DINOv3/                 # default DINOv3 model and processor config
-│   └── <dataset>/              # best.pt / latest.pt training checkpoints
+│   └── <dataset>/              # ckpt.pt training checkpoints
 ├── model/
 │   ├── config.py               # ModelConfig
 │   ├── encoder.py              # DINO encoder
 │   ├── dit.py                  # DiT
-│   ├── pixel_predictor.py      # Pixel Predictor (former decoder)
+│   ├── pixel_predictor.py      # Pixel Predictor
 │   ├── model.py                # three-component composition
 │   └── modules/                # reusable neural-network blocks
 ├── dataset/
@@ -46,7 +44,7 @@ cd D3F-IR
 python -m pip install -r requirements.txt
 ```
 
-## Data and checkpoints
+## Data
 
 Train/test split manifests from the source project are included under `data/`.
 The dataset images are not copied; place them under the matching dataset folder
@@ -60,10 +58,21 @@ The default dataset root is `data/<dataset-name>`:
 - KAIST_clean / M3FD_Detection: `train_set.json`, `test_set.json`, and the
   referenced images. The loader discovers these filenames automatically.
 
-DINOv3 weights are included at `ckpt/DINOv3/model.safetensors` with the required
-Hugging Face configuration files. Fine-tuning checkpoints default to
-`ckpt/<dataset-name>/best.pt` and `latest.pt`; a pretraining checkpoint can be
-placed at `ckpt/pretrain/best.pt`.
+## Weights
+
+The best fine-tuned checkpoints are hosted on the Hugging Face Hub as one
+repository per dataset: `D3F-IR-FLIR-align`, `D3F-IR-KAIST_clean`, and
+`D3F-IR-M3FD_Detection`. Download each `ckpt.pt` into `ckpt/<dataset-name>/` so
+it lands at `ckpt/<dataset-name>/ckpt.pt` (the path inference and evaluation read
+by default). Exact commands are in `ckpt/README.md`.
+
+- **DINOv3 — training only.** To train, download `facebook/dinov3-vits16-pretrain-lvd1689m`
+  and place its files under `ckpt/DINOv3/` so that `ckpt/DINOv3/model.safetensors`
+  exists (alongside `config.json` and `preprocessor_config.json`).
+  Inference/evaluation do **not** need it: the encoder architecture is defined in
+  code and its fine-tuned weights ship inside `ckpt.pt`.
+- A pretraining checkpoint can optionally be placed at `ckpt/pretrain/best.pt`.
+- Training writes `best.pt` / `latest.pt` under `ckpt/<dataset-name>/`.
 
 ## Train
 
@@ -86,13 +95,10 @@ and `ALIGN_WEIGHT`.
 
 ## Inference
 
-The selected dataset checkpoint is loaded automatically from
-`ckpt/<dataset-name>/ckpt.pt`. Provide one RGB image or a directory of images;
-directory structure is preserved in the output folder:
-
-The bundled defaults are selected from `red-v-DAB-final_finetune2/FLIR-align/best.pt`,
-`red-v-DAB-final_finetune2_fid/KAIST_clean/best copy.pt`, and
-`red-v-DAB-final_finetune2_fid/M3FD_Detection/best.pt`, respectively.
+`infer.py` loads the best checkpoint for the selected dataset from
+`ckpt/<dataset-name>/ckpt.pt` — i.e. the `D3F-IR-<dataset-name>` file you
+downloaded above. Provide one RGB image or a directory of images; the directory
+structure is preserved in the output folder:
 
 ```bash
 python infer.py --dataset FLIR-align --input path/to/rgb_images

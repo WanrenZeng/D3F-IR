@@ -15,7 +15,7 @@ from .pixel_predictor import PixelPredictor, ShallowUNetEncoder
 class D3FIRModel(nn.Module):
     """Compose the three configured model components."""
 
-    def __init__(self, config: ModelConfig, dino_checkpoint: str) -> None:
+    def __init__(self, config: ModelConfig, dino_checkpoint: str, load_pretrained: bool = True) -> None:
         super().__init__()
         self.config = config
         image_size = config.image_size
@@ -26,6 +26,7 @@ class D3FIRModel(nn.Module):
             ckpt_path=dino_checkpoint,
             trainable=True,
             latent_reduce_dim=config.latent_dim,
+            load_pretrained=load_pretrained,
         )
         self.dit = ConditionalDiT(
             latent_dim=config.latent_dim,
@@ -114,17 +115,17 @@ class D3FIRModel(nn.Module):
 
     def decode(
         self,
-        rgb_tokens_full: torch.Tensor,
-        draw_tokens: torch.Tensor,
-        rgb: Optional[torch.Tensor],
-        context_tokens: Optional[torch.Tensor],
-        rgb_latent: Optional[torch.Tensor] = None,
+        rgb: torch.Tensor,
+        rgb_latent: torch.Tensor,
+        velocity: torch.Tensor,
+        rgb_tokens: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        # rgb_tokens: visible-light DINO tokens (merged former context_tokens).
+        # rgb_latent: source latent (kept separate; not equivalent to rgb_tokens).
         tokens, image = self.pixel_predictor(
-            rgb_tokens_full,
-            draw_tokens,
+            rgb_tokens,
+            velocity,
             rgb=rgb,
-            context_tokens=context_tokens,
             rgb_latent=rgb_latent,
         )
         outputs: Dict[str, torch.Tensor] = {"decoder_tokens": tokens}

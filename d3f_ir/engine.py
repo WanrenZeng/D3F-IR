@@ -42,9 +42,8 @@ def train_one_epoch(
                 teacher_infrared_tokens, _ = teacher_encoder(infrared)
 
             with autocast(**autocast_kwargs):
-                rgb_tokens_full, rgb_tokens_latent = model.encode_rgb(visible)
+                rgb_tokens, rgb_tokens_latent = model.encode_rgb(visible)
                 infrared_tokens_full, infrared_tokens_latent = model.encode_infrared(infrared)
-                context_tokens_full = rgb_tokens_full
                 infrared_tokens_latent = infrared_tokens_latent.detach()
                 if rgb_tokens_latent is None:
                     raise RuntimeError("The visible-light latent adapter is required for flow matching.")
@@ -53,7 +52,7 @@ def train_one_epoch(
                 t_latent = t.view(-1, 1, 1)
                 mixed_latent = (1 - t_latent) * source_latent + t_latent * infrared_tokens_latent
                 model_out = model.dit(
-                    mixed_latent, t=t, cond=context_tokens_full, rgb_tokens=rgb_tokens_full
+                    mixed_latent, t=t, cond=rgb_tokens, rgb_tokens=rgb_tokens
                 )
                 target_velocity = infrared_tokens_latent - source_latent
                 flow_loss = l2_criterion(model_out, target_velocity)
@@ -65,8 +64,8 @@ def train_one_epoch(
                     align_outputs = model.dit(
                         mix_align,
                         t=t_align,
-                        cond=context_tokens_full,
-                        rgb_tokens=rgb_tokens_full,
+                        cond=rgb_tokens,
+                        rgb_tokens=rgb_tokens,
                         return_features=True,
                         feature_layer=args.align_layer,
                         align_only=True,
@@ -80,11 +79,10 @@ def train_one_epoch(
                     align_loss = -torch.mean(torch.sum(student_feats * teacher_feats, dim=-1))
 
                 predicted_pixel_velocity, pred_ae_tokens = model.decode(
-                    rgb_tokens_full,
-                    model_out,
                     rgb=visible,
-                    context_tokens=context_tokens_full,
                     rgb_latent=rgb_tokens_latent,
+                    velocity=model_out,
+                    rgb_tokens=rgb_tokens,
                 )
                 decoded_pred_img = visible + predicted_pixel_velocity
 
@@ -93,11 +91,10 @@ def train_one_epoch(
 
                 target_velocity = infrared_tokens_latent - source_latent
                 target_pixel_velocity, _ = model.decode(
-                    rgb_tokens_full,
-                    target_velocity,
                     rgb=visible,
-                    context_tokens=context_tokens_full,
                     rgb_latent=rgb_tokens_latent,
+                    velocity=target_velocity,
+                    rgb_tokens=rgb_tokens,
                 )
                 decoded_gt_img = visible + target_pixel_velocity
 
@@ -148,13 +145,12 @@ def train_one_epoch(
                         vis_pred_latent, vis_pred_image = sample_joint(
                             model,
                             rgb_tokens_latent.detach(),
-                            context_tokens_full,
-                            rgb_tokens_full,
+                            rgb_tokens,
                             visible,
                             max(1, args.val_flow_steps),
                         )
                     student_features = {
-                        "visible": rgb_tokens_full[:1].detach().cpu().float(),
+                        "visible": rgb_tokens[:1].detach().cpu().float(),
                         "pred": vis_pred_latent[:1].detach().cpu().float(),
                         "infrared": infrared_tokens_full[:1].detach().cpu().float(),
                     }
