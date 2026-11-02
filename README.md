@@ -4,6 +4,11 @@ Official implementation of D3F-IR: Dual-Domain Deterministic Flow Matching for V
 
 **Paper:** [ECCV 2026](https://media.eventhosts.cc/Conferences/ECCV2026/pdfs/6631.pdf)
 
+## To-Do
+
+- [x] 开源训练和推理代码
+- [ ] 上传训练好的 ckpt
+
 ## Project layout
 
 ```text
@@ -63,8 +68,10 @@ The default dataset root is `data/<dataset-name>`:
 ## Weights
 
 The best fine-tuned checkpoints are hosted on the Hugging Face Hub as one
-repository per dataset: `wanren02/D3F-IR-FLIR-align`, `wanren02/D3F-IR-KAIST_clean`,
-and `wanren02/D3F-IR-M3FD_Detection`. Download each `ckpt.pt` into
+repository per dataset: [`wanren02/D3F-IR-FLIR-align`](https://huggingface.co/wanren02/D3F-IR-FLIR-align),
+[`wanren02/D3F-IR-KAIST_clean`](https://huggingface.co/wanren02/D3F-IR-KAIST_clean),
+and [`wanren02/D3F-IR-M3FD_Detection`](https://huggingface.co/wanren02/D3F-IR-M3FD_Detection).
+Download each `ckpt.pt` into
 `ckpt/<dataset-name>/` so it lands at `ckpt/<dataset-name>/ckpt.pt` (the path
 inference and evaluation read by default):
 
