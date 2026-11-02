@@ -1,0 +1,14 @@
+torch>=2.0
+torchvision>=0.15
+numpy
+Pillow
+opencv-python-headless
+einops
+transformers>=4.56,<5
+safetensors
+scikit-learn
+matplotlib
+lpips
+torchmetrics
+clean-fid
+tqdm

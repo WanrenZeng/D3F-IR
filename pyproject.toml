@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "d3f-ir"
+version = "0.1.0"
+description = "D3F-IR infrared image generation training project"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.0",
+    "torchvision>=0.15",
+    "numpy",
+    "Pillow",
+    "opencv-python-headless",
+    "einops",
+    "transformers>=4.56",
+    "safetensors",
+    "scikit-learn",
+    "matplotlib",
+    "lpips",
+    "torchmetrics",
+    "cleanfid",
+    "tqdm",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["d3f_ir*", "model*", "dataset*"]
