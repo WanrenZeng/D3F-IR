@@ -2,6 +2,8 @@
 
 Official implementation of D3F-IR: Dual-Domain Deterministic Flow Matching for Visible-to-Infrared Translation. 
 
+**Paper:** [ECCV 2026](https://media.eventhosts.cc/Conferences/ECCV2026/pdfs/6631.pdf)
+
 ## Project layout
 
 ```text
@@ -61,10 +63,16 @@ The default dataset root is `data/<dataset-name>`:
 ## Weights
 
 The best fine-tuned checkpoints are hosted on the Hugging Face Hub as one
-repository per dataset: `D3F-IR-FLIR-align`, `D3F-IR-KAIST_clean`, and
-`D3F-IR-M3FD_Detection`. Download each `ckpt.pt` into `ckpt/<dataset-name>/` so
-it lands at `ckpt/<dataset-name>/ckpt.pt` (the path inference and evaluation read
-by default). Exact commands are in `ckpt/README.md`.
+repository per dataset: `wanren02/D3F-IR-FLIR-align`, `wanren02/D3F-IR-KAIST_clean`,
+and `wanren02/D3F-IR-M3FD_Detection`. Download each `ckpt.pt` into
+`ckpt/<dataset-name>/` so it lands at `ckpt/<dataset-name>/ckpt.pt` (the path
+inference and evaluation read by default):
+
+```bash
+hf download wanren02/D3F-IR-FLIR-align     ckpt.pt --local-dir ckpt/FLIR-align
+hf download wanren02/D3F-IR-KAIST_clean    ckpt.pt --local-dir ckpt/KAIST_clean
+hf download wanren02/D3F-IR-M3FD_Detection ckpt.pt --local-dir ckpt/M3FD_Detection
+```
 
 - **DINOv3 — training only.** To train, download `facebook/dinov3-vits16-pretrain-lvd1689m`
   and place its files under `ckpt/DINOv3/` so that `ckpt/DINOv3/model.safetensors`
